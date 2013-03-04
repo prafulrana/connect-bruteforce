@@ -1,4 +1,4 @@
-exports = module.exports = function (options) {
+module.exports = function (options) {
     var self = this,
         settings = options || {};
     settings.banMax = settings.banMax || 30 * 1000;
@@ -20,17 +20,7 @@ exports = module.exports = function (options) {
         var factor = Math.min(delay.counter * settings.banFactor, settings.banMax);
         return new Date().getTime() + factor;
     };
-    self.prevent = function (req, res, next) {
-        req.delayed = self.db[self.clientID(req)];
-        if (req.delayed) {
-            var responseAt = self.responseAt(req.delayed);
-            process.nextTick(function () {
-                self.delay(responseAt, next);
-            });
-        } else {
-            next();
-        }
-    };
+    self.prevent =
     self.ban = function (req) {
         var clientID = self.clientID(req),
             delay = self.db[clientID] || (self.db[clientID] = {
@@ -43,5 +33,16 @@ exports = module.exports = function (options) {
     self.unban = function (req) {
         delete self.db[self.clientID(req)];
         delete req.delayed;
+    };
+    return function (req, res, next) {
+        req.delayed = self.db[self.clientID(req)];
+        if (req.delayed) {
+            var responseAt = self.responseAt(req.delayed);
+            process.nextTick(function () {
+                self.delay(responseAt, next);
+            });
+        } else {
+            next();
+        }
     };
 };
